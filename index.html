@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aries: Formal Verification for AI Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1318;
+    --border: #1a2530;
+    --accent: #e8c547;
+    --accent-dim: rgba(232, 197, 71, 0.12);
+    --text: #e8edf2;
+    --text-dim: #6b7f8f;
+    --text-mid: #9baab8;
+    --mono: 'DM Mono', monospace;
+    --serif: 'DM Serif Display', serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* GRID LINES */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(26, 37, 48, 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(26, 37, 48, 0.4) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 12, 16, 0.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8rem 3rem 5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease 0.1s forwards;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 2rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-headline {
+    font-family: var(--serif);
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.2s forwards;
+  }
+
+  .hero-headline em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--text-mid);
+    max-width: 560px;
+    line-height: 1.8;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.35s forwards;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    opacity: 0;
+    animation: fadeUp 0.7s ease 0.5s forwards;
+  }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.85rem 2rem;
+    background: var(--accent);
+    color: #080c10;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover {
+    background: #f0d060;
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.85rem 2rem;
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--text-dim);
+    color: var(--text);
+  }
+
+
+
+  /* SECTION */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 7rem 3rem;
+  }
+
+  .section-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-tag::before {
+    content: '';
+    display: block;
+    width: 1.5rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  /* PROBLEM / SOLUTION SPLIT */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  .col-heading {
+    font-family: var(--serif);
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+  }
+
+  .col-body {
+    color: var(--text-mid);
+    font-size: 1rem;
+    line-height: 1.9;
+  }
+
+  .col-body p + p {
+    margin-top: 1rem;
+  }
+
+  /* CODE BLOCK STYLE */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 1.5rem;
+    margin-top: 2rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-mid);
+    line-height: 1.8;
+    overflow-x: auto;
+  }
+
+  .code-block .kw { color: var(--accent); }
+  .code-block .cm { color: #445566; }
+  .code-block .str { color: #7abeab; }
+
+  /* HOW IT WORKS */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 3rem;
+  }
+
+  .step {
+    background: var(--surface);
+    padding: 2.5rem;
+    border: 1px solid var(--border);
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .step:hover { border-color: rgba(232, 197, 71, 0.3); }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    margin-bottom: 1.5rem;
+    display: block;
+  }
+
+  .step-title {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .step-body {
+    font-size: 0.88rem;
+    color: var(--text-mid);
+    line-height: 1.8;
+  }
+
+
+
+  /* CONTACT */
+  .contact-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .contact-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+  }
+
+  .contact-heading {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    line-height: 1.15;
+  }
+
+  .contact-heading em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .contact-body {
+    color: var(--text-mid);
+    font-size: 0.95rem;
+    line-height: 1.9;
+    margin-bottom: 2rem;
+  }
+
+  .contact-email {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(232, 197, 71, 0.3);
+    padding-bottom: 2px;
+    transition: border-color 0.2s;
+  }
+
+  .contact-email:hover { border-color: var(--accent); }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    padding: 2rem 3rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+  }
+
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-copy {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--text); }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { display: none; }
+    .hero { padding: 7rem 1.5rem 4rem; }
+    section { padding: 4rem 1.5rem; }
+    .two-col, .steps, .research-grid, .contact-inner { grid-template-columns: 1fr; gap: 2rem; }
+    .proof-bar { padding: 1.5rem; }
+    .proof-inner { gap: 1.5rem; }
+    footer { padding: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Aries</a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Formal Verification for AI Agents</div>
+  <h1 class="hero-headline">
+    Your agent runs<br>10,000 times.<br>
+    <em>Not once</em> breaks a rule.
+  </h1>
+  <p class="hero-sub">
+    Aries is a formal verification layer that proves AI agent compliance before execution, in regulated domains where failure is not an option.
+  </p>
+  <div class="hero-cta">
+    <a href="#contact" class="btn-primary">Get in Touch</a>
+    <a href="#how" class="btn-secondary">How It Works</a>
+  </div>
+</div>
+
+
+
+<!-- PROBLEM / SOLUTION -->
+<section>
+  <div class="section-inner">
+    <div class="section-tag">The Problem</div>
+    <div class="two-col">
+      <div>
+        <h2 class="col-heading">AI agents in regulated domains have no proof they follow the rules.</h2>
+        <div class="col-body">
+          <p>Modern LLM-based agents are deployed across healthcare, legal, financial, and public benefit systems, domains where every decision has legal and human consequences.</p>
+          <p>Today's guardrails catch errors after the fact. Prompt engineering drifts. RAG pipelines hallucinate. There is no formal guarantee of compliance.</p>
+          <p>The result: organizations face liability, regulators have no audit trail, and the people these systems serve are exposed to silent, undetectable errors.</p>
+        </div>
+      </div>
+      <div>
+        <h2 class="col-heading">Aries provides <em>proof</em>, not promises.</h2>
+        <div class="col-body">
+          <p>We encode domain rules using formal knowledge representation. These rules are not heuristics. They are machine-verifiable logic.</p>
+          <p>Before any agent action reaches a user, our verification engine proves compliance against those rules. Not checks. Not filters. Mathematical proof.</p>
+          <p>The LLM plans. The deterministic executor acts. Nothing escapes verification.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-inner">
+    <div class="section-tag">How It Works</div>
+    <h2 class="col-heading" style="max-width:600px; margin-bottom:0;">Three layers. One guarantee.</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01 / Ingest</span>
+        <h3 class="step-title">Your Rules, Formalized</h3>
+        <p class="step-body">Aries ingests your domain's regulatory and compliance requirements and converts them into a machine-readable rule set. No configuration by hand. Your existing policy documents become the source of truth.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">02 / Plan</span>
+        <h3 class="step-title">The Agent Proposes</h3>
+        <p class="step-body">Your AI agent generates a proposed action. It does not execute freely. Every output is treated as a candidate, held for verification before it reaches a user or downstream system.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">03 / Verify</span>
+        <h3 class="step-title">Proof Before Execution</h3>
+        <p class="step-body">Aries checks the proposed action against your rule set. If it passes, it executes. If it doesn't, it's blocked: silently, automatically, every time. No exceptions, no drift, no surprises.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<hr class="divider">
+
+<!-- CONTACT -->
+<section id="contact" class="contact-section">
+  <div class="contact-inner">
+    <div>
+      <h2 class="contact-heading">
+        Building in<br><em>regulated AI?</em><br>Let's talk.
+      </h2>
+    </div>
+    <div>
+      <p class="contact-body">
+        Aries is seeking design partners in healthcare, legal, and public sector AI: organizations deploying agents where compliance failures carry real consequences. If you're building systems that need to be right, not just usually right, we want to hear from you.
+      </p>
+      <a href="mailto:hello@ariesverify.com" class="contact-email">hello@ariesverify.com</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <span class="footer-copy">© 2026 Aries LLC, Baltimore, MD</span>
+    <ul class="footer-links">
+      <li><a href="https://github.com/ariesverify" target="_blank">GitHub</a></li>
+      <li><a href="mailto:hello@ariesverify.com">Email</a></li>
+    </ul>
+  </div>
+</footer>
+
+</body>
+</html>
