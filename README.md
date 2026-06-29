@@ -1,2 +1,2 @@
-Platform for user driven AI Explainability 
-First testing platform that we have this here !
+
+AI Safety in the Social Security Department 
